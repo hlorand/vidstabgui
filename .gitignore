@@ -1,3 +1,6 @@
 *.exe
 *.zip
 *.trf
+*.app
+ffmpeg
+
