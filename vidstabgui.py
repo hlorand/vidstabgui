@@ -2,7 +2,9 @@ from tkinter import *
 from tkinter import filedialog as Filedialog
 from tkinter import messagebox as Messagebox
 import subprocess
+import platform
 import time
+import os
 
 tk = Tk()
 tk.title("VidStab GUI")
@@ -76,7 +78,7 @@ class GuiSlider(GuiThing):
     def __init__(self, name, description,  start, end, default, stepsize=1):
         super().__init__(name, description)
 
-        self.valueHolder = Scale(self.frame, from_=start, to=end, length=600, resolution=stepsize, orient=HORIZONTAL)
+        self.valueHolder = Scale(self.frame, from_=start, to=end, length=550, resolution=stepsize, orient=HORIZONTAL)
         self.valueHolder.pack(anchor=NW)
         self.valueHolder.set(default)
 
@@ -114,9 +116,20 @@ def stabilize():
         Messagebox.showerror(title="Error", message="No files selected")
         return
 
+    # Change directory to script directory
+    if platform.system() == "Darwin":
+        abspath = os.path.abspath(__file__)
+        dirname = os.path.dirname(abspath)
+        os.chdir(dirname)
+        print("Working directory:", os.getcwd())
+
     # Check if ffmpeg.exe is present
-    if not os.path.isfile("./ffmpeg.exe"):
-        Messagebox.showerror(title="Error", message="Can't find ffmpeg.exe. Please download it from https://www.gyan.dev/ffmpeg/builds/ and place it next to vidstabgui.exe")
+    if os.path.isfile("./ffmpeg.exe"):
+        ffmpeg = ".\ffmpeg.exe"
+    elif  os.path.isfile("./ffmpeg"):
+        ffmpeg = "./ffmpeg"
+    else:
+        Messagebox.showerror(title="Error", message="Can't find ffmpeg. Please download the build from https://ffmpeg.org/download.html and place it next to the vidstabgui")
         return
     
     for file in files.files:
@@ -128,7 +141,7 @@ def stabilize():
         tk.update()
 
         # Analyze motion
-        command  = f"ffmpeg.exe -i \"{file}\""
+        command  = f"{ffmpeg} -i \"{file}\""
         command += f" -vf vidstabdetect={shakiness.getArgument()}"
         command += f" -f null -"
         print(command)
@@ -139,7 +152,7 @@ def stabilize():
         tk.update()
 
         # Stabilize video
-        command  = f"ffmpeg.exe -i \"{file}\""
+        command  = f"{ffmpeg} -i \"{file}\""
         command += f" -crf {crf.getValue()}"
         command += f" -preset medium"
         command += f" -vf unsharp=5:5:{sharpening.getValue()}:3:3:{sharpening.getValue()/2},"
@@ -163,7 +176,7 @@ def stabilize():
 
     # Open output folder in the file manager
     outputfolder = "/".join( file.split("/")[0:-1] )
-    print(outputfolder)
+    print("Output folder:", outputfolder)
     subprocess.call(f"start \"\" \"{outputfolder}\" ", shell=True)
 
 
@@ -175,7 +188,7 @@ shakiness  = GuiSlider("shakiness", "On a scale of 1 to 10 how quick is the came
 smoothing  = GuiSlider("smoothing", "Number of frames used in stabilization process. Bigger frame count = smoother motion. (A number of 10 means that 21 frames are used: 10 in the past and 10 in the future.) ", 1, 300, 60)
 optalgo    = GuiRadio("optalgo", "Set the camera path optimization algorithm.", [ ["gauss","Gaussian kernel low-pass filter on camera motion"],["avg"," Averaging on transformations"] ])
 
-optzoom    = GuiRadio("optzoom", "Set optimal zooming to avoid blank-borders. ", [ ["0","Disabled"],["1","Optimal static zoom value is determined, only very strong movements will lead to visible borders"], ["2", "Optimal adaptive zoom value is determined"] ])
+optzoom    = GuiRadio("optzoom", "Set optimal zooming to avoid blank-borders. ", [ ["0","Disabled"],["1","Optimal static zoom value is determined"], ["2", "Optimal adaptive zoom value is determined"] ])
 zoom       = GuiSlider("zoom", "Zoom in or out (percentage).", -100, 100, 0)
 zoomspeed  = GuiSlider("zoomspeed", "Set percent to zoom maximally each frame (enabled when optzoom is set to 2).", 0, 5, 0.25, 0.05)
 

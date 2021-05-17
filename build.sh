@@ -9,17 +9,20 @@ unzip ffmpeg-4.4.zip
 rm ffmpeg-4.4.zip
 
 # Build Using Pyinstaller
-pyinstaller --onefile -w "vidstabgui.py"
+pyinstaller --onefile -w "vidstabgui.py" --add-data "ffmpeg:."
 
-# Remove unnecessary folders
+# Remove unnecessary files and folders
+rm ffmpeg
 rm -rf __pycache__
 rm -rf build
 rm vidstabgui.spec
+rm -rf vidstabgui.app
 mv dist/vidstabgui.app .
 rm -rf dist
 
 # Create zip file
 date=$(date +"%Y-%m-%d")
-zip -r "vidstabgui-osx-"$date".zip" ./vidstabgui.app ffmpeg
+rm "vidstabgui-osx-"$date".zip"
+zip -r "vidstabgui-osx-"$date".zip" ./vidstabgui.app
 
 open .
