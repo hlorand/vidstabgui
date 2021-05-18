@@ -117,16 +117,15 @@ def stabilize():
         return
 
     # Change directory to script directory
-    if platform.system() == "Darwin":
-        abspath = os.path.abspath(__file__)
-        dirname = os.path.dirname(abspath)
-        os.chdir(dirname)
-        print("Working directory:", os.getcwd())
+    abspath = os.path.abspath(__file__)
+    dirname = os.path.dirname(abspath)
+    os.chdir(dirname)
+    print("Working directory:", os.getcwd())
 
     # Check if ffmpeg.exe is present
     if os.path.isfile("./ffmpeg.exe"):
-        ffmpeg = ".\ffmpeg.exe"
-    elif  os.path.isfile("./ffmpeg"):
+        ffmpeg = "ffmpeg.exe"
+    elif os.path.isfile("./ffmpeg"):
         ffmpeg = "./ffmpeg"
     else:
         Messagebox.showerror(title="Error", message="Can't find ffmpeg. Please download the build from https://ffmpeg.org/download.html and place it next to the vidstabgui")
