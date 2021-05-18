@@ -2,12 +2,11 @@ from tkinter import *
 from tkinter import filedialog as Filedialog
 from tkinter import messagebox as Messagebox
 import subprocess
-import platform
 import time
 import os
 
 tk = Tk()
-tk.title("VidStab GUI")
+tk.title("Video Stabilization GUI")
 tk.widgetcount = 1
 
 """
@@ -97,7 +96,10 @@ class GuiRadio(GuiThing):
         # Add every option as a radio button
         self.value = IntVar()
         for i in range(len(options)):
-            radio = Radiobutton(self.frame, text=f"{options[i][0]} ({options[i][1]})", variable=self.value, value=i)
+            text = f"{options[i][0]}"
+            if options[i][1]:
+                text += f" ({options[i][1]})"
+            radio = Radiobutton(self.frame, text=text, variable=self.value, value=i)
             radio.pack(anchor=NW)
 
         self.valueHolder = self
@@ -144,7 +146,7 @@ def stabilize():
         command += f" -vf vidstabdetect={shakiness.getArgument()}"
         command += f" -f null -"
         print(command)
-        subprocess.call(command, shell=True)
+        subprocess.call(command, shell=showconsole.get())
 
         # Show notification that the stabilization process has started
         info.configure(fg="blue", text="Stabilizing: " + file.split("/").pop() )
@@ -153,8 +155,15 @@ def stabilize():
         # Stabilize video
         command  = f"{ffmpeg} -i \"{file}\""
         command += f" -crf {crf.getValue()}"
-        command += f" -preset medium"
-        command += f" -vf unsharp=5:5:{sharpening.getValue()}:3:3:{sharpening.getValue()/2},"
+        command += f" -preset {preset.getValue()}"
+        if speedup.getValue() > 1:
+            fps = min(30*speedup.getValue(), 120) # clamp fps 0-120
+            command += f" -r {fps}"
+            command += f" -af atempo={speedup.getValue()}"
+            command += f" -vf setpts={1/speedup.getValue()}*PTS,"
+        else:
+            command += f" -vf "
+        command += f"unsharp=5:5:{sharpening.getValue()}:3:3:{sharpening.getValue()/2},"
         command += f"vidstabtransform="
         command += f"{smoothing.getArgument()}"
         command += f":{crop.getArgument()}"
@@ -168,7 +177,7 @@ def stabilize():
         command += f":input='transforms.trf'"
         command += f" \"{output}\" -y"
         print(command)
-        subprocess.call(command, shell=True)
+        subprocess.call(command, shell=showconsole.get())
 
     # Show notification that the job done
     info.configure(fg="green", text="Done." )
@@ -176,7 +185,8 @@ def stabilize():
     # Open output folder in the file manager
     outputfolder = "/".join( file.split("/")[0:-1] )
     print("Output folder:", outputfolder)
-    subprocess.call(f"start \"\" \"{outputfolder}\" ", shell=True)
+    subprocess.call(f"start \"\" \"{outputfolder}\" ", shell=True) # Windows
+    subprocess.call(f"open \"{outputfolder}\" ", shell=True)       # OSX
 
 
 #########################################################################
@@ -184,7 +194,7 @@ def stabilize():
 files      = GuiFiles("input files", "Open mp4, mov, avi... videos here")
 
 shakiness  = GuiSlider("shakiness", "On a scale of 1 to 10 how quick is the camera shake in your opinion?", 1, 10, 6)
-smoothing  = GuiSlider("smoothing", "Number of frames used in stabilization process. Bigger frame count = smoother motion. (A number of 10 means that 21 frames are used: 10 in the past and 10 in the future.) ", 1, 300, 60)
+smoothing  = GuiSlider("smoothing", "Number of frames used in stabilization process. Bigger frame count = smoother motion. (A number of 10 means that 21 frames are used: 10 in the past and 10 in the future.) ", 1, 1000, 60,5)
 optalgo    = GuiRadio("optalgo", "Set the camera path optimization algorithm.", [ ["gauss","Gaussian kernel low-pass filter on camera motion"],["avg"," Averaging on transformations"] ])
 
 optzoom    = GuiRadio("optzoom", "Set optimal zooming to avoid blank-borders. ", [ ["0","Disabled"],["1","Optimal static zoom value is determined"], ["2", "Optimal adaptive zoom value is determined"] ])
@@ -193,13 +203,14 @@ zoomspeed  = GuiSlider("zoomspeed", "Set percent to zoom maximally each frame (e
 
 crop       = GuiRadio("crop", "How to deal with empty frame borders", [ ["black","Fill the border-areas black."],["keep","Keep image information from previous frame"] ])
 interpol   = GuiRadio("interpol", "Specify type of interpolation", [ ["bilinear","Linear in both directions"],["bicubic","Cubic in both directions - slow"],["linear","Linear only horizontal"],["no","No interpolation"] ])
+preset    = GuiRadio("preset", "Select encoding speed. More speed = bigger file size.", [ ["medium",None],["faster",None], ["slower", None], ["ultrafast", None] ])
 
 maxshift   = GuiSlider("maxshift", "Set maximal number of pixels to translate frames. (-1 = no limit)", -1, 640, -1)
 maxangle   = GuiSlider("maxangle", "Set maximal angle in degrees to rotate frames. (-1 = no limit)", -1, 360, -1)
 
 sharpening = GuiSlider("sharpening", "A little bit of sharpening is recommended after stabilization.", 0, 1.5, 0.8, 0.05)
 crf        = GuiSlider("crf", "Output video compression rate factor. Smaller crf: Better quality, greater file size. Bigger crf: Better compression, smaller file size.", 0, 51, 21)
-
+speedup    = GuiSlider("speed up", "Speed up video for hyperlapse effect. Use more smoothing for better stabilization.", 1, 20, 1, 1)
 
 # A frame that holds the Stabilize button
 stabilizeFrame = LabelFrame(tk, text="Stabilize", padx=0, pady=0)
@@ -211,5 +222,10 @@ info.pack(anchor=NW)
 
 stabilizeButton = Button(stabilizeFrame, text="Stabilize", padx=20, pady=10, bg="white", command=stabilize )
 stabilizeButton.pack(pady=10)
+
+showconsole = IntVar()
+showconsole.set(1)
+showconsolecheck = Checkbutton(stabilizeFrame, text='Show console during stabilization',variable=showconsole, onvalue=False, offvalue=True)
+showconsolecheck.pack(anchor=NW)
 
 tk.mainloop()
