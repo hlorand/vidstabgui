@@ -53,18 +53,24 @@ class GuiFiles(GuiThing):
                   ('M4V files', '*.m4v') ]
         self.files = list( Filedialog.askopenfilename(multiple=True, filetypes=types ) )
 
-        if len(self.files) == 1:
-            self.label.configure(fg="green", text=f"{self.files[0].split('/').pop()} selected" )
-        else:
-            self.label.configure(fg="green", text=f"{len(self.files)} file(s) selected" )
+        # Add filename to Listbox
+        filelist.delete(0,self.list.size())
+        self.list.delete(0,self.list.size())
+        for i in range(len(self.files)):
+            filename = self.files[i].split("/").pop()
+            self.list.insert(i, filename)
+            filelist.insert(i, filename)
     
     def __init__(self, name, description, tab):
         super().__init__(name, description, tab)
 
         self.files = []
-
+        
         self.button = Button(self.frame,text = "Browse video files...", padx="10", command=self.browse)
         self.button.pack(anchor=NW)
+
+        self.list = Listbox(self.frame, width=80, height=25)
+        self.list.pack(anchor=NW, expand = 1, fill ="both")
 
 
 """
@@ -131,13 +137,16 @@ def stabilize():
     else:
         Messagebox.showerror(title="Error", message="Can't find ffmpeg. Please download the build from https://ffmpeg.org/download.html and place it next to the vidstabgui")
         return
-    
+
     for file in files.files:
         # Generate output filename. ( inputfilename.stabilized.time.mp4 )
         output = ".".join( file.split(".")[0:-1] + ["stabilized",str(int(time.time())), "mp4"] )
 
         # Show notification that the analysis has started
-        info.configure(fg="purple", text="Analysing: " + file.split("/").pop() )
+        index = files.files.index(file)
+        filelist.delete(index)
+        filelist.insert(index, "(Analysing) " + file.split("/").pop() )
+        filelist.selection_set(index)
         tk.update()
 
         # Analyze motion
@@ -148,7 +157,9 @@ def stabilize():
         subprocess.call(command, shell=bool(showconsole.get()) )
 
         # Show notification that the stabilization process has started
-        info.configure(fg="blue", text="Stabilizing: " + file.split("/").pop() )
+        filelist.delete(index)
+        filelist.insert(index, "(Stabilizing) " + file.split("/").pop() )
+        filelist.selection_set(index)
         tk.update()
 
         # Stabilize video
@@ -178,8 +189,11 @@ def stabilize():
         print(command)
         subprocess.call(command, shell=bool(showconsole.get()) )
 
-    # Show notification that the job done
-    info.configure(fg="green", text="Done." )
+        # Show notification that the file stabilized
+        filelist.delete(index)
+        filelist.insert(index, "(OK) " + file.split("/").pop() )
+        filelist.selection_set(index)
+        tk.update()
 
     # Open output folder in the file manager
     outputfolder = "/".join( file.split("/")[0:-1] )
@@ -229,8 +243,8 @@ speedup    = GuiSlider("speed up", "Speed up video for hyperlapse effect. Use mo
 stabilizeFrame = LabelFrame(output, text="Stabilize", padx=0, pady=0)
 stabilizeFrame.pack(anchor=NW, fill='x')
 
-info = Label(stabilizeFrame, text="")
-info.pack(anchor=NW)
+filelist = Listbox(stabilizeFrame, width=80, height=25)
+filelist.pack(anchor=NW, expand = 1, fill ="both")
 
 stabilizeButton = Button(stabilizeFrame, text="Stabilize", padx=20, pady=10, bg="white", command=stabilize )
 stabilizeButton.pack(pady=10)
