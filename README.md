@@ -8,22 +8,20 @@ You can download the application to Windows or OSX at the [releases page](https:
 
 ## Build
 
-**Windows**
+**Windows (64 bit)**
 
-Requirements:
-
-- [py2exe](https://pypi.org/project/py2exe/)
-
+- Requirements: [py2exe](https://pypi.org/project/py2exe/)
 - Open an administrative Power Shell
-- Run `.\build-scripts\win\build-py2exe.ps1`
-	- The configuration file for the script is `build-scripts\win\setup.py`
+- Navigate to `build-scripts\win\`
+- Run `.\build-py2exe.ps1`
+	- The configuration file for the script is: `setup.py`
+
+For 32 bit Windows you can use this build script, the only difference is that after the script finished, you have to manually download a [32 bit ffmpeg build](https://github.com/advancedfx/ffmpeg.zeranoe.com-builds-mirror/releases/tag/20200915) and replace `dist\ffmpeg.exe` with it (which is a 64 bit build).
 
 **OSX**
 
-Requirements:
-
-- [pyinstaller](https://pypi.org/project/pyinstaller/)
-
+- Requirements: [pyinstaller](https://pypi.org/project/pyinstaller/)
 - Open a Terminal
-- `chmod +x ./build-scripts/osx/build-pyinstaller.sh`
-- Run `./build-scripts/osx/build-pyinstaller.sh`
+- Navigate to `build-scripts/osx/`
+- `chmod +x ./build-pyinstaller.sh`
+- Run `./build-pyinstaller.sh`
