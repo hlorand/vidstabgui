@@ -123,12 +123,13 @@ def stabilize():
         Messagebox.showerror(title="Error", message="No files selected")
         return
 
-    # Change directory to script directory
-    abspath = os.path.abspath(__file__)
-    dirname = os.path.dirname(abspath)
-    os.chdir(dirname)
-    print("Working directory:", os.getcwd())
-
+    # Change directory to script directory - remove the "if" condition if building with pyinstaller on Windows
+    if os.name == "posix":
+        abspath = os.path.abspath(__file__)
+        dirname = os.path.dirname(abspath)
+        os.chdir(dirname)
+        print("Working directory:", os.getcwd())
+        
     # Check if ffmpeg.exe is present
     if os.path.isfile("./ffmpeg.exe"):
         ffmpeg = "ffmpeg.exe"

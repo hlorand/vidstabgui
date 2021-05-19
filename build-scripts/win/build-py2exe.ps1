@@ -1,7 +1,9 @@
 
-# Install Pyinstaller
-pip3 install pyinstaller
-pip3 install --upgrade pyinstaller
+cd ..\..\
+
+# Install Py2exe
+pip3 install py2exe
+pip3 install --upgrade py2exe
 
 # Download ffmpeg
 Invoke-WebRequest -Uri https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -OutFile .\ffmpeg-release-essentials.zip 
@@ -14,21 +16,16 @@ Remove-Item "ffmpeg-$version-essentials_build" -Recurse
 Remove-Item ffmpeg-release-essentials.zip
 Remove-Item version.txt
 
-# Build Using Pyinstaller
-pyinstaller.exe --onefile -w "vidstabgui.py" --add-data "ffmpeg.exe;."
+# Build Using Py2exe
+python .\build-scripts\win\setup.py install
+python .\build-scripts\win\setup.py py2exe
 
 # Remove unnecessary folders
 Remove-Item ffmpeg.exe
-Remove-Item __pycache__ -Recurse
-Remove-Item build -Recurse
-Remove-Item vidstabgui.spec
-Remove-Item vidstabgui.exe
-Move-Item dist\vidstabgui.exe .
-Remove-Item dist -Recurse
 
 # Create zip file
 $date = Get-Date -Format "yyyy-MM-dd"
 Remove-Item "vidstabgui-win-$date.zip"
-Compress-Archive -Path .\vidstabgui.exe -DestinationPath "vidstabgui-win-$date.zip"
+Compress-Archive -Path .\dist\* -DestinationPath "vidstabgui-win-$date.zip"
 
 explorer .

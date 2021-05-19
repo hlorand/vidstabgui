@@ -1,3 +1,6 @@
+#!/bin/bash
+
+cd ../../
 
 # Install Pyinstaller
 pip3 install pyinstaller
