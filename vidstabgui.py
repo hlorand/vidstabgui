@@ -1,13 +1,13 @@
 from tkinter import *
 from tkinter import filedialog as Filedialog
 from tkinter import messagebox as Messagebox
+from tkinter import ttk
 import subprocess
 import time
 import os
 
 tk = Tk()
 tk.title("Video Stabilization GUI")
-tk.widgetcount = 1
 
 """
 Base class for every GUI element.
@@ -22,13 +22,12 @@ or you can get the command line attribute in "valuename=value" format with getAt
 class GuiThing:
     valueHolder = None
     
-    def __init__(self, name, description):
+    def __init__(self, name, description, tab):
         self.name = name
 
-        self.frame = LabelFrame(tk, text=name.capitalize(), padx=10, pady=0)
-        tk.widgetcount += 1
-        self.frame.grid( row=int(tk.widgetcount/2), column=tk.widgetcount%2, sticky=NSEW )
-        
+        self.frame = LabelFrame(tab, text=name.capitalize(), padx=10, pady=5)
+        self.frame.pack(anchor=NW, fill='x')
+     
         self.label = Label(self.frame, text=description, wraplength=500)
         self.label.pack(anchor=NW)
     
@@ -59,8 +58,8 @@ class GuiFiles(GuiThing):
         else:
             self.label.configure(fg="green", text=f"{len(self.files)} file(s) selected" )
     
-    def __init__(self, name, description):
-        super().__init__(name, description)
+    def __init__(self, name, description, tab):
+        super().__init__(name, description, tab)
 
         self.files = []
 
@@ -74,8 +73,8 @@ Slider GUI element
 A simple slider. You can set the slider start and end value and step size.
 """
 class GuiSlider(GuiThing):
-    def __init__(self, name, description,  start, end, default, stepsize=1):
-        super().__init__(name, description)
+    def __init__(self, name, description, tab, start, end, default, stepsize=1):
+        super().__init__(name, description, tab)
 
         self.valueHolder = Scale(self.frame, from_=start, to=end, length=550, resolution=stepsize, orient=HORIZONTAL)
         self.valueHolder.pack(anchor=NW)
@@ -88,8 +87,8 @@ Radio button group GUI element which
 You can set the options (value-description pairs) in the options list
 """
 class GuiRadio(GuiThing):
-    def __init__(self, name, description, options):
-        super().__init__(name, description)
+    def __init__(self, name, description, tab, options):
+        super().__init__(name, description, tab)
 
         self.options = options
 
@@ -146,7 +145,7 @@ def stabilize():
         command += f" -vf vidstabdetect={shakiness.getArgument()}"
         command += f" -f null -"
         print(command)
-        subprocess.call(command, shell=showconsole.get())
+        subprocess.call(command, shell=bool(showconsole.get()) )
 
         # Show notification that the stabilization process has started
         info.configure(fg="blue", text="Stabilizing: " + file.split("/").pop() )
@@ -177,7 +176,7 @@ def stabilize():
         command += f":input='transforms.trf'"
         command += f" \"{output}\" -y"
         print(command)
-        subprocess.call(command, shell=showconsole.get())
+        subprocess.call(command, shell=bool(showconsole.get()) )
 
     # Show notification that the job done
     info.configure(fg="green", text="Done." )
@@ -191,31 +190,44 @@ def stabilize():
 
 #########################################################################
 # Build GUI
-files      = GuiFiles("input files", "Open mp4, mov, avi... videos here")
 
-shakiness  = GuiSlider("shakiness", "On a scale of 1 to 10 how quick is the camera shake in your opinion?", 1, 10, 6)
-smoothing  = GuiSlider("smoothing", "Number of frames used in stabilization process. Bigger frame count = smoother motion. (A number of 10 means that 21 frames are used: 10 in the past and 10 in the future.) ", 1, 1000, 60,5)
-optalgo    = GuiRadio("optalgo", "Set the camera path optimization algorithm.", [ ["gauss","Gaussian kernel low-pass filter on camera motion"],["avg"," Averaging on transformations"] ])
+tabs = ttk.Notebook(tk)
 
-optzoom    = GuiRadio("optzoom", "Set optimal zooming to avoid blank-borders. ", [ ["0","Disabled"],["1","Optimal static zoom value is determined"], ["2", "Optimal adaptive zoom value is determined"] ])
-zoom       = GuiSlider("zoom", "Zoom in or out (percentage).", -100, 100, 0)
-zoomspeed  = GuiSlider("zoomspeed", "Set percent to zoom maximally each frame (enabled when optzoom is set to 2).", 0, 5, 0.25, 0.05)
+inputfiles = ttk.Frame(tabs)
+stabsettings = ttk.Frame(tabs)
+zoomsettings = ttk.Frame(tabs)
+mp4settings = ttk.Frame(tabs)
+output = ttk.Frame(tabs)
 
-crop       = GuiRadio("crop", "How to deal with empty frame borders", [ ["black","Fill the border-areas black."],["keep","Keep image information from previous frame"] ])
-interpol   = GuiRadio("interpol", "Specify type of interpolation", [ ["bilinear","Linear in both directions"],["bicubic","Cubic in both directions - slow"],["linear","Linear only horizontal"],["no","No interpolation"] ])
-preset    = GuiRadio("preset", "Select encoding speed. More speed = bigger file size.", [ ["medium",None],["faster",None], ["slower", None], ["ultrafast", None] ])
+tabs.add(inputfiles, text ='1) Input files')
+tabs.add(stabsettings, text ='2) Stabilization')
+tabs.add(zoomsettings, text ='3) Zoom')
+tabs.add(mp4settings, text ='4) MP4 settings')
+tabs.add(output, text ='5) Start')
+tabs.pack(expand = 1, fill ="both")
 
-maxshift   = GuiSlider("maxshift", "Set maximal number of pixels to translate frames. (-1 = no limit)", -1, 640, -1)
-maxangle   = GuiSlider("maxangle", "Set maximal angle in degrees to rotate frames. (-1 = no limit)", -1, 360, -1)
+files      = GuiFiles("input files", "Open mp4, mov, avi... videos here", inputfiles)
 
-sharpening = GuiSlider("sharpening", "A little bit of sharpening is recommended after stabilization.", 0, 1.5, 0.8, 0.05)
-crf        = GuiSlider("crf", "Output video compression rate factor. Smaller crf: Better quality, greater file size. Bigger crf: Better compression, smaller file size.", 0, 51, 21)
-speedup    = GuiSlider("speed up", "Speed up video for hyperlapse effect. Use more smoothing for better stabilization.", 1, 20, 1, 1)
+shakiness  = GuiSlider("shakiness", "On a scale of 1 to 10 how quick is the camera shake in your opinion?", stabsettings, 1, 10, 6)
+smoothing  = GuiSlider("smoothing", "Number of frames used in stabilization process. Bigger frame count = smoother motion. (A number of 10 means that 21 frames are used: 10 in the past and 10 in the future.) ", stabsettings, 1, 1000, 60,5)
+optalgo    = GuiRadio("optalgo", "Set the camera path optimization algorithm.", stabsettings, [ ["gauss","Gaussian kernel low-pass filter on camera motion"],["avg"," Averaging on transformations"] ])
+interpol   = GuiRadio("interpol", "Specify type of interpolation", stabsettings, [ ["bilinear","Linear in both directions"],["bicubic","Cubic in both directions - slow"],["linear","Linear only horizontal"],["no","No interpolation"] ])
+maxshift   = GuiSlider("maxshift", "Set maximal number of pixels to translate frames. (-1 = no limit)", stabsettings, -1, 640, -1)
+maxangle   = GuiSlider("maxangle", "Set maximal angle in degrees to rotate frames. (-1 = no limit)", stabsettings, -1, 360, -1)
+
+optzoom    = GuiRadio("optzoom", "Set optimal zooming to avoid blank-borders. ", zoomsettings, [ ["0","Disabled"],["1","Optimal static zoom value is determined"], ["2", "Optimal adaptive zoom value is determined"] ])
+zoom       = GuiSlider("zoom", "Zoom in or out (percentage).", zoomsettings, -100, 100, 0)
+zoomspeed  = GuiSlider("zoomspeed", "Set percent to zoom maximally each frame (enabled when optzoom is set to 2).", zoomsettings, 0, 5, 0.25, 0.05)
+crop       = GuiRadio("crop", "How to deal with empty frame borders", zoomsettings, [ ["black","Fill the border-areas black."],["keep","Keep image information from previous frame"] ])
+
+preset     = GuiRadio("preset", "Select encoding speed. More speed = bigger file size.", mp4settings, [ ["medium",None],["faster",None], ["slower", None], ["ultrafast", None] ])
+sharpening = GuiSlider("sharpening", "A little bit of sharpening is recommended after stabilization.", mp4settings, 0, 1.5, 0.8, 0.05)
+crf        = GuiSlider("crf", "Output video compression rate factor. Smaller crf: Better quality, greater file size. Bigger crf: Better compression, smaller file size.", mp4settings, 0, 51, 21)
+speedup    = GuiSlider("speed up", "Speed up video for hyperlapse effect. Use more smoothing for better stabilization.", mp4settings, 1, 20, 1, 1)
 
 # A frame that holds the Stabilize button
-stabilizeFrame = LabelFrame(tk, text="Stabilize", padx=0, pady=0)
-tk.widgetcount += 1
-stabilizeFrame.grid( row=int(tk.widgetcount/2), column=tk.widgetcount%2, sticky=NSEW )
+stabilizeFrame = LabelFrame(output, text="Stabilize", padx=0, pady=0)
+stabilizeFrame.pack(anchor=NW, fill='x')
 
 info = Label(stabilizeFrame, text="")
 info.pack(anchor=NW)
@@ -225,7 +237,8 @@ stabilizeButton.pack(pady=10)
 
 showconsole = IntVar()
 showconsole.set(1)
-showconsolecheck = Checkbutton(stabilizeFrame, text='Show console during stabilization',variable=showconsole, onvalue=False, offvalue=True)
-showconsolecheck.pack(anchor=NW)
+if os.name != "posix":
+    showconsolecheck = Checkbutton(stabilizeFrame, text='Show console during stabilization',variable=showconsole, onvalue=0, offvalue=1)
+    showconsolecheck.pack(anchor=NW)
 
 tk.mainloop()
