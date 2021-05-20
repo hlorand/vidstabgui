@@ -20,8 +20,8 @@ For 32 bit Windows you can use this build script, the only difference is that af
 
 **OSX**
 
-- Requirements: [pyinstaller](https://pypi.org/project/pyinstaller/)
+- Requirements: [py2app](https://pypi.org/project/py2app/)
 - Open a Terminal
 - Navigate to `build-scripts/osx/`
-- `chmod +x ./build-pyinstaller.sh`
-- Run `./build-pyinstaller.sh`
+- `chmod +x ./build-py2app.sh`
+- Run `./build-py2app.sh`
