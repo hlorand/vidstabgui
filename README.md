@@ -18,6 +18,8 @@ You can download the application to Windows or OSX at the [releases page](https:
 
 For 32 bit Windows you can use this build script, the only difference is that after the script finished, you have to manually download a [32 bit ffmpeg build](https://github.com/advancedfx/ffmpeg.zeranoe.com-builds-mirror/releases/tag/20200915) and replace `dist\ffmpeg.exe` with it (which is a 64 bit build).
 
+*If you receive an error message that says "VCRUNTIME140.dll not found", please install [Visual C++ 2015 Redistributable](https://www.microsoft.com/en-us/download/details.aspx?id=52685)*
+
 **OSX**
 
 - Requirements: [py2app](https://pypi.org/project/py2app/)
