@@ -6,7 +6,9 @@ You can download the application to Windows or OSX at the [releases page](https:
 
 *Sometimes Windows Defender marks vidstabgui.exe as a virus, which is a false positive alarm (because the exe files made with Pyinstaller rarely recognized by Windows as a virus). You can safely add it as an exception to your antivirus software and run it. If you are skeptical download the source code from GitHub and run `vidstabgui.py` directly in Python.*
 
-![](https://raw.githubusercontent.com/hlorand/vidstabgui/assets/screenshot.gif)
+|  |  |
+|--|--|
+| ![](screenshot1.png) | ![](screenshot2.png) |
 
 ## Build
 

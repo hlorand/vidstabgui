@@ -5,6 +5,7 @@ from tkinter import ttk
 import subprocess
 import time
 import os
+import re
 
 tk = Tk()
 tk.title("Video Stabilization GUI")
@@ -149,13 +150,19 @@ def stabilize():
         filelist.insert(index, "(Analysing) " + file.split("/").pop() )
         filelist.selection_set(index)
         tk.update()
-
-        # Analyze motion
-        command  = f"{ffmpeg} -i \"{file}\""
-        command += f" -vf vidstabdetect={shakiness.getArgument()}"
-        command += f" -f null -"
-        print(command)
-        subprocess.call(command, shell=bool(showconsole.get()) )
+        
+        # Analyze motion - only if transform file not generated yet
+        slug = re.sub(r'[\W_]+', '-', file)
+        transformfile = slug + str(shakiness.getValue()) + ".trf"
+        
+        if not os.path.isfile( transformfile ):
+            command  = f"{ffmpeg} -i \"{file}\""
+            command += f" -vf vidstabdetect={shakiness.getArgument()}:result={transformfile}"
+            command += f" -f null -"
+            print(command)
+            subprocess.call(command, shell=bool(showconsole.get()) )
+        else:
+            print(f"{transformfile} exists, skipping analyzation.")
 
         # Show notification that the stabilization process has started
         filelist.delete(index)
@@ -167,6 +174,7 @@ def stabilize():
         command  = f"{ffmpeg} -i \"{file}\""
         command += f" -crf {crf.getValue()}"
         command += f" -preset {preset.getValue()}"
+        command += f" -threads {limitcpu.getValue()}"
         if speedup.getValue() > 1:
             fps = min(30*speedup.getValue(), 120) # clamp fps 0-120
             command += f" -r {fps}"
@@ -185,7 +193,7 @@ def stabilize():
         command += f":{interpol.getArgument()}"
         command += f":{maxshift.getArgument()}"
         command += f":maxangle={-1 if maxangle.getValue() < 0 else maxangle.getValue()*3.1415/180}"
-        command += f":input='transforms.trf'"
+        command += f":input='{transformfile}'"
         command += f" \"{output}\" -y"
         print(command)
         subprocess.call(command, shell=bool(showconsole.get()) )
@@ -236,6 +244,7 @@ zoomspeed  = GuiSlider("zoomspeed", "Set percent to zoom maximally each frame (e
 crop       = GuiRadio("crop", "How to deal with empty frame borders", zoomsettings, [ ["black","Fill the border-areas black."],["keep","Keep image information from previous frame"] ])
 
 preset     = GuiRadio("preset", "Select encoding speed. More speed = bigger file size.", mp4settings, [ ["medium",None],["faster",None], ["slower", None], ["ultrafast", None] ])
+limitcpu   = GuiSlider("limit cpu", "Limit CPU cores when encoding. (0 = no limit)", mp4settings, 0, 16, 0, 1)
 sharpening = GuiSlider("sharpening", "A little bit of sharpening is recommended after stabilization.", mp4settings, 0, 1.5, 0.8, 0.05)
 crf        = GuiSlider("crf", "Output video compression rate factor. Smaller crf: Better quality, greater file size. Bigger crf: Better compression, smaller file size.", mp4settings, 0, 51, 21)
 speedup    = GuiSlider("speed up", "Speed up video for hyperlapse effect. Use more smoothing for better stabilization.", mp4settings, 1, 20, 1, 1)
