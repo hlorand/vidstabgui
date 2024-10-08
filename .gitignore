@@ -4,3 +4,6 @@
 *.app
 ffmpeg
 dist/
+
+_releases/
+_issues.txt
